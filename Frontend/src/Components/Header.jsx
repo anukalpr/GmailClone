@@ -80,7 +80,7 @@ const Header = ({ toggleDrawer, setEmails, setSearchMode }) => {
 
     if (query.length > 2) {
       try {
-        const res = await fetch(`http://localhost:4000/emails/search?query=${query}`);
+        const res = await fetch(`https://gmailclone-rjhk.onrender.com/emails/search?query=${query}`);
         const data = await res.json();
         setEmails(data);
         setSearchMode(true);
