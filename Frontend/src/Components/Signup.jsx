@@ -3,7 +3,7 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase/firebase";
 import { useNavigate, NavLink } from "react-router-dom";
 import { toast } from "react-toastify";
-import './Signup.css'; 
+import './Signup.css';
 
 const Signup = () => {
     const [email, setEmails] = useState('');
@@ -15,12 +15,19 @@ const Signup = () => {
         e.preventDefault();
         try {
             await createUserWithEmailAndPassword(auth, email, password);
-            const user = auth.currentUser;
-            console.log(user);
+            await fetch('http://localhost:4000/signup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: email,
+                    password: password,
+                }),
+            });
             toast.success('User Registered Successfully', { position: 'top-center' });
             navigate('/');
         } catch (error) {
-            console.log("Signup Error:", error.message);
             setError('Signup failed: ' + error.message);
         }
     };
@@ -51,7 +58,7 @@ const Signup = () => {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
-                            placeholder="Enter your password"
+                            placeholder="Enter your app password"
                         />
                     </div>
                     {error && <p className="error-message">{error}</p>}
@@ -60,7 +67,7 @@ const Signup = () => {
 
                 <div className="app-password-section">
                     <p className="note">
-                        <strong>Note:</strong><p>Generate App password before signing up and use the same app password in password field then sign up.</p> 
+                        <strong>Note:</strong> Generate an App Password from your Google account and use it here.
                     </p>
                     <button onClick={handleAppPasswordGuide} className="app-password-button">
                         Generate App Password
