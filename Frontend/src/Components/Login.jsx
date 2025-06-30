@@ -19,15 +19,11 @@ const Login = () => {
   const signIn = async (e) => {
     e.preventDefault();
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      
-      await axios.post('https://gmailclone-rjhk.onrender.com/signup', {
-        userId: email,
-        password: password,
-        to: "anukalp.raj_cs22@gla.ac.in",
-        subject: "Greetings",
-        text: "Hello"
-        
+      await signInWithEmailAndPassword(auth, email, password);
+
+      // ✅ Optional: Track login
+      await axios.post('http://localhost:4000/login-track', {
+        userId: email
       });
 
       navigate("/all-mail", { state: { password } }); 
