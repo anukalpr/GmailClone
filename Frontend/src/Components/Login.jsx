@@ -22,7 +22,7 @@ const Login = () => {
       await signInWithEmailAndPassword(auth, email, password);
 
       // ✅ Optional: Track login
-      await axios.post('https://gmailclone-rjhk.onrender.com/login-track', {
+      await axios.post('http://localhost:4000/login-track', {
         userId: email
       });
 
