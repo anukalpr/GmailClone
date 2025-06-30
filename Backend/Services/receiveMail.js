@@ -4,8 +4,8 @@ const UserCredentials = require('../model/userCredentials');
 
 const isPrintable = (str) => /^[\x20-\x7E\s]*$/.test(str);
 
-const fetchMail = async () => {
-  const creds = await UserCredentials.findOne().sort({ _id: -1 });
+const fetchMail = async (userId) => {
+  const creds = await UserCredentials.findOne({ userId });
   if (!creds) throw new Error('No user credentials found.');
 
   const imap = new Imap({
@@ -14,7 +14,7 @@ const fetchMail = async () => {
     host: 'imap.gmail.com',
     port: 993,
     tls: true,
-    debug: console.log ,
+    debug: console.log,
   });
 
   const openInbox = (cb) => imap.openBox('INBOX', false, cb);
@@ -30,12 +30,12 @@ const fetchMail = async () => {
 
         const fetch = imap.seq.fetch(`${box.messages.total}:*`, {
           bodies: ['HEADER.FIELDS (FROM TO SUBJECT DATE)', 'TEXT'],
-          struct: true
+          struct: true,
         });
 
         fetch.on('message', (msg, seqno) => {
           console.log(`🔄 Fetching message #${seqno}...`);
-          const emailData = { seqno };
+          const emailData = { seqno, from: creds.userId };
 
           msg.on('body', (stream, info) => {
             let buffer = '';
@@ -63,7 +63,7 @@ const fetchMail = async () => {
                 from: emailData.from,
                 to: emailData.to,
                 subject: emailData.subject,
-                date: emailData.date
+                date: emailData.date,
               });
 
               if (!existing) {
