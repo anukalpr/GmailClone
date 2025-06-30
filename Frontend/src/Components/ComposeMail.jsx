@@ -72,7 +72,7 @@ const ComposeMail = ({ openDialog, setOpenDialog }) => {
     e.preventDefault();
     if (!userLoggedIn) return alert('You need to be logged in to send an email!');
     try {
-      await axios.post('http://localhost:4000/send-email', {
+      await axios.post('https://gmailclone-rjhk.onrender.com/send-email', {
         userId: currentUser.email,
         password,
         to: recipients,
@@ -93,14 +93,14 @@ const ComposeMail = ({ openDialog, setOpenDialog }) => {
   const saveAsDraft = async (e) => {
     try {
       if (draftId) {
-        await axios.put(`http://localhost:4000/emails/${draftId}/save-draft`, {
+        await axios.put(`https://gmailclone-rjhk.onrender.com/emails/${draftId}/save-draft`, {
           to: recipients,
           subject,
           text: body,
           draft: true
         });
       } else {
-        const res = await axios.post('http://localhost:4000/draft-emails', {
+        const res = await axios.post('https://gmailclone-rjhk.onrender.com/draft-emails', {
           to: recipients,
           from: currentUser.email,
           subject,
