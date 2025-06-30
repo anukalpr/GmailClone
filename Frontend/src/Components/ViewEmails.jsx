@@ -1,229 +1,204 @@
-import {
-  AccessAlarm,
-  DeleteForeverOutlined,
-  Star,
-  StarBorder
-} from "@mui/icons-material";
-import {
-  Checkbox,
-  Box,
-  Typography,
-  IconButton,
-  styled
-} from "@mui/material";
-import { useState } from "react";
+import React, { useEffect, useState } from 'react';
+import { Box, Typography, IconButton, Button } from '@mui/material';
+import { useLocation } from 'react-router-dom';
+import { ArrowBack, Delete, Reply, StarBorder, Star, Shortcut } from '@mui/icons-material';
 import axios from 'axios';
-import { useLocation, useNavigate } from "react-router-dom";
+import DOMPurify from 'dompurify';
+import ReplyDialog from './ReplyDialog';
+import ForwardDialog from './ForwardDialog';
 
-const WrapperEmail = styled(Box)(({ theme }) => ({
-  borderBottom: '1px solid #e0e0e0',
-  padding: '8px 12px',
-  cursor: 'pointer',
-  transition: 'all 0.2s ease',
-  "&:hover": {
-    backgroundColor: "#f2f2f2",
-  },
-}));
+function decodeQuotedPrintable(input) {
+  return input
+    .replace(/=(?:\r\n|\n|\r)/g, '')
+    .replace(/=([A-Fa-f0-9]{2})/g, (match, hex) =>
+      String.fromCharCode(parseInt(hex, 16))
+    );
+}
 
-const RowDesktop = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: '10px',
-  [theme.breakpoints.down('sm')]: {
-    display: 'none'
+function extractHtmlFromMime(mimeString) {
+  if (!mimeString) return '';
+  const boundaryMatch = mimeString.match(/boundary="?([^"\r\n]+)"?/i);
+  if (!boundaryMatch) {
+    if (mimeString.includes('Content-Type: text/html')) {
+      const parts = mimeString.split(/\r?\n\r?\n/);
+      for (let i = 0; i < parts.length; i++) {
+        if (parts[i].toLowerCase().includes('content-type: text/html')) {
+          let content = parts[i + 1] || '';
+          const encodingHeader = parts[i].match(/Content-Transfer-Encoding: (.+)/i);
+          const encoding = encodingHeader ? encodingHeader[1].toLowerCase().trim() : '';
+          if (encoding === 'quoted-printable') content = decodeQuotedPrintable(content);
+          else if (encoding === 'base64') content = atob(content.replace(/\s/g, ''));
+          return content;
+        }
+      }
+    }
+    return mimeString;
   }
-}));
 
-const RowMobileTop = styled(Box)(({ theme }) => ({
-  display: 'none',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  [theme.breakpoints.down('sm')]: {
-    display: 'flex'
+  const boundary = boundaryMatch[1];
+  const parts = mimeString.split('--' + boundary);
+  for (const part of parts) {
+    if (part.toLowerCase().includes('content-type: text/html')) {
+      const headerEndIndex = part.indexOf('\r\n\r\n');
+      if (headerEndIndex === -1) continue;
+      let content = part.substring(headerEndIndex + 4).trim();
+      const encodingHeader = part.match(/Content-Transfer-Encoding: (.+)/i);
+      const encoding = encodingHeader ? encodingHeader[1].toLowerCase().trim() : '';
+      if (encoding === 'quoted-printable') content = decodeQuotedPrintable(content);
+      else if (encoding === 'base64') {
+        try {
+          content = atob(content.replace(/\s/g, ''));
+        } catch {}
+      }
+      return content;
+    }
   }
-}));
 
-const RowMobileBottom = styled(Box)(({ theme }) => ({
-  display: 'none',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  flexWrap: 'wrap',
-  gap: '8px',
-  marginTop: '4px',
-  [theme.breakpoints.down('sm')]: {
-    display: 'flex'
-  }
-}));
+  return mimeString;
+}
 
-const Email = ({ email, selectedEmails, setEmails, toggleSelectEmail }) => {
-  const [isStarred, setIsStarred] = useState(email.starred);
-  const [isSnoozed, setIsSnoozed] = useState(email.snoozed);
+const ViewEmail = ({ openDrawer, email, setEmails }) => {
   const location = useLocation();
-  const navigate = useNavigate();
+  const [openReplyDialog, setOpenReplyDialog] = useState(false);
+  const [openForwardDialog, setOpenForwardDialog] = useState(false);
+  const [isStarred, setIsStarred] = useState(email?.starred || false);
+
+  useEffect(() => {
+    setIsStarred(email?.starred || false);
+  }, [email]);
 
   const handleStarred = async () => {
     try {
       await axios.put(`http://localhost:4000/emails/${email._id}/star`);
-      setIsStarred(!isStarred);
-      setEmails(prev => prev.map(e =>
-        e._id === email._id ? { ...e, starred: !e.starred } : e
-      ));
+      setIsStarred(prev => !prev);
+      setEmails(prevEmails =>
+        prevEmails.map(e => (e._id === email._id ? { ...e, starred: !e.starred } : e))
+      );
     } catch (error) {
-      console.error(error.message);
-    }
-  };
-
-  const handleSnoozed = async () => {
-    try {
-      await axios.put(`http://localhost:4000/emails/${email._id}/snooze`);
-      setIsSnoozed(!isSnoozed);
-      setEmails(prev => prev.map(e =>
-        e._id === email._id ? { ...e, snoozed: !e.snoozed } : e
-      ));
-    } catch (error) {
-      console.error(error.message);
-    }
-  };
-
-  const handleDelete = async () => {
-    try {
-      await axios.delete(`http://localhost:4000/emails/${email._id}/delete`);
-      setEmails(prev => prev.filter(e => e._id !== email._id));
-    } catch (error) {
-      console.error(error.message);
+      console.error('Star toggle error:', error.message);
     }
   };
 
   const handleBin = async () => {
     try {
-      await axios.put(`http://localhost:4000/emails/${email._id}/bin`);
-      setEmails(prev => prev.map(e => e._id === email._id ? { ...e, bin: true } : e));
+      await axios.put(`https://gmailclone-rjhk.onrender.com/emails/${email._id}/bin`);
+      setEmails(prevEmails =>
+        prevEmails.map(e => (e._id === email._id ? { ...e, bin: true } : e))
+      );
     } catch (error) {
-      console.error(error.message);
+      console.error('Bin error:', error.message);
     }
   };
 
-  const handleBinDelete = () => {
-    if (location.pathname === '/bin') handleDelete();
-    else handleBin();
+  const getEmailHtml = () => {
+    if (!email?.text) return '';
+    if (email.text.toLowerCase().includes('content-type: text/html')) {
+      const rawHtml = extractHtmlFromMime(email.text);
+      return DOMPurify.sanitize(rawHtml);
+    }
+    return DOMPurify.sanitize(email.text.replace(/\n/g, '<br />'));
   };
 
-  const handleViewEmail = () => {
-    navigate('/view-email');
-  };
+  const drawerStyle = openDrawer
+    ? { marginLeft: '0px', marginTop: '0px' }
+    : { marginTop: '0px', width: '100%' };
 
-  const formatDateTime = (date) => {
-    const now = new Date();
-    const messageDate = new Date(date);
-    const diff = (now - messageDate) / (1000 * 60 * 60);
-    return diff < 24
-      ? messageDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
-      : messageDate.toLocaleDateString("en-US", { day: "numeric", month: "short" });
-  };
+  const pathnamesToHide = ['/inbox', '/sent', '/draft', '/bin', '/all-mail', '/snoozed', '/starred'];
+
+  if (!email) return <Box p={2}>Select an email to view</Box>;
 
   return (
-    <WrapperEmail>
-      {/* Desktop View */}
-      <RowDesktop>
-        <Checkbox
-          size="small"
-          checked={selectedEmails.includes(email._id)}
-          onChange={() => toggleSelectEmail(email._id)}
-        />
-        <IconButton onClick={handleStarred}>
-          {isStarred ? (
-            <Star fontSize="small" sx={{ color: "gold" }} />
-          ) : (
-            <StarBorder fontSize="small" sx={{ color: "gray" }} />
-          )}
-        </IconButton>
-        <Typography
-          onClick={handleViewEmail}
-          sx={{
-            minWidth: '150px',
-            maxWidth: '200px',
-            overflow: 'hidden',
-            whiteSpace: 'nowrap',
-            textOverflow: 'ellipsis',
-            fontSize: '14px',
-            flexShrink: 1
-          }}
-        >
-          {email.from}
-        </Typography>
-        <Typography
-          onClick={handleViewEmail}
-          sx={{
-            flex: 1,
-            overflow: 'hidden',
-            whiteSpace: 'nowrap',
-            textOverflow: 'ellipsis',
-            fontSize: '14px',
-            textAlign: 'center'
-          }}
-        >
-          {email.subject}
-        </Typography>
-        <Typography
-          onClick={handleViewEmail}
-          sx={{ fontSize: '13px', minWidth: '70px' }}
-        >
-          {formatDateTime(email.date)}
-        </Typography>
-        <IconButton onClick={handleBinDelete}>
-          <DeleteForeverOutlined fontSize="small" sx={{ color: 'black' }} />
-        </IconButton>
-        <IconButton onClick={handleSnoozed}>
-          <AccessAlarm fontSize="small" sx={{ color: isSnoozed ? 'blue' : 'gray' }} />
-        </IconButton>
-      </RowDesktop>
-
-      {/* Mobile View */}
-      <RowMobileTop>
-        <Typography
-          onClick={handleViewEmail}
-          sx={{
-            fontWeight: 600,
-            fontSize: '14px',
-            overflow: 'hidden',
-            whiteSpace: 'nowrap',
-            textOverflow: 'ellipsis',
-            maxWidth: '70%'
-          }}
-        >
-          {email.from}
-        </Typography>
-        <Typography
-          variant="caption"
-          color="textSecondary"
-          sx={{ fontSize: '12px' }}
-        >
-          {formatDateTime(email.date)}
-        </Typography>
-      </RowMobileTop>
-
-      <RowMobileBottom>
-        <Checkbox
-          size="small"
-          checked={selectedEmails.includes(email._id)}
-          onChange={() => toggleSelectEmail(email._id)}
-        />
-        <IconButton onClick={handleSnoozed}>
-          <AccessAlarm fontSize="small" sx={{ color: isSnoozed ? 'blue' : 'gray' }} />
-        </IconButton>
-        <IconButton onClick={handleStarred}>
-          {isStarred ? (
-            <Star fontSize="small" sx={{ color: 'gold' }} />
-          ) : (
-            <StarBorder fontSize="small" sx={{ color: 'gray' }} />
-          )}
-        </IconButton>
-        <IconButton onClick={handleBinDelete}>
-          <DeleteForeverOutlined fontSize="small" sx={{ color: 'black' }} />
-        </IconButton>
-      </RowMobileBottom>
-    </WrapperEmail>
+    <Box style={drawerStyle}>
+      {!pathnamesToHide.includes(location.pathname) && (
+        <Box p={{ xs: 1, sm: 3 }}>
+          <Box display="flex" alignItems="center" gap={1}>
+            <IconButton onClick={() => window.history.back()}>
+              <ArrowBack color="action" fontSize="small" />
+            </IconButton>
+            <IconButton onClick={handleBin}><Delete /></IconButton>
+          </Box>
+          <Typography sx={{ fontSize: '20px', mt: 2, ml: { xs: 2, sm: 6 } }}>
+            {email.subject}
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', mt: 2, ml: { xs: 2, sm: 6 }, flexWrap: 'wrap', gap: 1 }}>
+            <Box>
+              <img
+                src="https://lh3.googleusercontent.com/a/default-user=s40-p"
+                alt="avatar"
+                style={{ borderRadius: '50%', width: 40, height: 40 }}
+              />
+            </Box>
+            <Box flex={1}>
+              <Typography fontSize={14}>{email.from}</Typography>
+              <Typography fontSize={12} color="text.secondary">
+                {new Date(email.date).toLocaleString()}
+              </Typography>
+            </Box>
+            <Box>
+              {isStarred ? (
+                <Star fontSize="small" onClick={handleStarred} style={{ color: 'gold', cursor: 'pointer' }} />
+              ) : (
+                <StarBorder fontSize="small" onClick={handleStarred} style={{ cursor: 'pointer' }} />
+              )}
+              <Reply fontSize="small" style={{ marginLeft: 8, cursor: 'pointer' }} onClick={() => setOpenReplyDialog(true)} />
+            </Box>
+          </Box>
+          <Box
+            mt={3}
+            ml={{ xs: 2, sm: 6 }}
+            pr={2}
+            sx={{
+              fontFamily: 'sans-serif',
+              color: '#222',
+              fontSize: '15px',
+              wordBreak: 'break-word',
+              whiteSpace: 'normal',
+              lineHeight: 1.5
+            }}
+            dangerouslySetInnerHTML={{ __html: getEmailHtml() }}
+          />
+          <Box display="flex" gap={2} mt={5} pl={{ xs: 2, sm: 6 }} flexWrap="wrap">
+            <Button
+              onClick={() => setOpenReplyDialog(true)}
+              variant="outlined"
+              startIcon={<Reply />}
+              sx={{
+                borderRadius: '30px',
+                textTransform: 'none',
+                color: 'black',
+                borderColor: 'black',
+                height: { xs: 32, sm: 40 },
+                minWidth: { xs: '140px', sm: '120px' },
+                fontSize: { xs: '13px', sm: '14px' },
+                paddingX: 2
+              }}
+            >
+              Reply
+            </Button>
+            <Button
+              onClick={() => setOpenForwardDialog(true)}
+              variant="outlined"
+              startIcon={<Shortcut />}
+              sx={{
+                borderRadius: '30px',
+                textTransform: 'none',
+                color: 'black',
+                borderColor: 'black',
+                height: { xs: 32, sm: 40 },
+                minWidth: { xs: '140px', sm: '120px' },
+                fontSize: { xs: '13px', sm: '14px' },
+                paddingX: 2
+              }}
+            >
+              Forward
+            </Button>
+          </Box>
+        </Box>
+      )}
+      <ReplyDialog openDialog={openReplyDialog} setOpenDialog={setOpenReplyDialog} />
+      <ForwardDialog openDialog={openForwardDialog} setOpenDialog={setOpenForwardDialog} email={email} />
+    </Box>
   );
 };
 
-export default Email;
+export default ViewEmail;
