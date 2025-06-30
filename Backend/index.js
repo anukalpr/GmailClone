@@ -1,10 +1,10 @@
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
-
 const connection = require('./Database/DB');
 const router = require('./Routes/route');
-const fetchMail = require('./Services/receiveMail'); 
+const fetchMail = require('./Services/receiveMail');
+const UserCredentials = require('./model/userCredentials');
 
 const app = express();
 const port = 4000;
@@ -13,22 +13,18 @@ connection();
 
 app.use(cors());
 app.use(express.json());
-
 app.use('/', router);
 
 app.get('/image-proxy', async (req, res) => {
   try {
     const imageUrl = req.query.url;
     if (!imageUrl) return res.status(400).send('Missing url parameter');
-
     if (!/^https?:\/\//i.test(imageUrl)) {
       return res.status(400).send('Invalid URL');
     }
 
     const response = await axios.get(imageUrl, { responseType: 'stream' });
-
     res.set('Content-Type', response.headers['content-type'] || 'image/png');
-
     response.data.pipe(res);
   } catch (error) {
     console.error('Error proxying image:', error.message);
@@ -42,5 +38,19 @@ app.get('/', (req, res) => {
 
 app.listen(port, () => {
   console.log(`🚀 Server is running on http://localhost:${port}`);
-  fetchMail();
+  
+  const pullEmails = async () => {
+    try {
+      const users = await UserCredentials.find({});
+      for (const user of users) {
+        console.log(`📬 Fetching emails for ${user.userId}`);
+        await fetchMail(user.userId);
+      }
+    } catch (err) {
+      console.error('❌ Error during periodic email fetch:', err.message);
+    }
+  };
+
+  pullEmails(); 
+  setInterval(pullEmails, 5 * 60 * 1000); 
 });
