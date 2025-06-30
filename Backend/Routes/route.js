@@ -29,10 +29,10 @@ router.post('/signup', async (req, res) => {
     await sendMail(userId, userId, 'Welcome!', 'Your account has been registered.');
     res.send('Signup and welcome email sent!');
   } catch (error) {
-    console.error("❌ Signup error:", error);
     res.status(500).json({ message: error.message });
   }
 });
+
 
 router.post('/login-track', async (req, res) => {
   const { userId } = req.body;
@@ -41,9 +41,10 @@ router.post('/login-track', async (req, res) => {
 });
 
 router.get('/fetch-emails', async (req, res) => {
-  const { email } = req.query;
+  const { userId } = req.query;
   try {
-    const emails = await fetchMail(email);
+    await fetchMail(userId);
+    const emails = await Email.find({ to: userId });
     res.json({ message: 'Fetched successfully', emails });
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch emails', error: error.message });
@@ -61,7 +62,6 @@ router.get('/emails', async (req, res) => {
 
 router.get('/emails/search', async (req, res) => {
   const { query } = req.query;
-  console.log("Query received:", query);
   try {
     const emails = await Email.find({
       $or: [
@@ -100,8 +100,8 @@ router.put('/emails/:id/snooze', async (req, res) => {
 
 router.post('/draft-emails', async (req, res) => {
   try {
-    const { to,from, subject, text, draft = true } = req.body;
-    const email = new Email({ to,from, subject, text, draft });
+    const { to, from, subject, text, draft = true } = req.body;
+    const email = new Email({ to, from, subject, text, draft });
     await email.save();
     res.status(201).json(email);
   } catch (error) {
