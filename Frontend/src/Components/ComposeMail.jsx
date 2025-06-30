@@ -79,14 +79,14 @@ const ComposeMail = ({ openDialog, setOpenDialog }) => {
         subject,
         text: body
       });
-      alert('Email sent successfully!');
+      
       setRecipients('');
       setSubject('');
       setBody('');
       setOpenDialog(false);
     } catch (error) {
       console.error('Error sending email:', error);
-      alert('Failed to send email.');
+      setOpenDialog(false);
     }
   };
 
@@ -109,7 +109,7 @@ const ComposeMail = ({ openDialog, setOpenDialog }) => {
         });
         setDraftId(res.data._id);
       }
-      alert("Draft saved!");
+      
     } catch (error) {
       console.error("Error saving draft:", error);
       alert("Failed to save draft.");
