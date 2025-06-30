@@ -18,7 +18,7 @@ const Emails = ({ openDrawer, toggleDrawer }) => {
 
   const fetchEmails = async () => {
     try {
-      const res = await axios.get('http://localhost:4000/emails');
+      const res = await axios.get('https://gmailclone-rjhk.onrender.com/emails');
       setEmails(res.data);
     } catch (error) {
       console.error('Error fetching emails:', error);
@@ -65,12 +65,12 @@ const Emails = ({ openDrawer, toggleDrawer }) => {
   const handleSelectedDelete = async () => {
     try {
       if (location.pathname === '/bin') {
-        await axios.delete('http://localhost:4000/emails/delete', {
+        await axios.delete('https://gmailclone-rjhk.onrender.com/emails/delete', {
           data: { ids: selectedEmails }
         });
         setEmails(prev => prev.filter(email => !selectedEmails.includes(email._id)));
       } else {
-        await axios.put('http://localhost:4000/emails/bin', { ids: selectedEmails });
+        await axios.put('https://gmailclone-rjhk.onrender.com/emails/bin', { ids: selectedEmails });
         setEmails(prev =>
           prev.map(email =>
             selectedEmails.includes(email._id)
