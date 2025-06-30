@@ -1,67 +1,3 @@
-// import { Box, Button, styled, List, ListItem } from '@mui/material';
-// import { CreateOutlined } from '@mui/icons-material';
-// import { SIDEBAR_DATA } from '../Config/sidebar.config';
-// import ComposeMail from './ComposeMail';
-// import { useState } from 'react';
-// import { useNavigate } from 'react-router-dom';  
-
-// const ComposeButton = styled(Button)({
-//   margin: '10px 0px 0px 20px',
-//   borderRadius: 10,
-//   background: '#C2E7FF',
-//   color: 'black',
-//   height: 50
-// });
-
-// const Container = styled(Box)({
-//   padding: 8,
-//   '& > ul': {
-//     padding: '10px,0,0,5px',
-//     fontSize: 16,
-//     fontWeight: 'bolder',
-//     cursor: 'pointer'
-//   },
-//   '&>ul>li.selected': {
-//     background: '#90D5FF',
-//     borderRadius: '10px',
-//   },
-//   '& > ul > li > svg': {
-//     marginRight: 20
-//   }
-// });
-
-// const SideBarContent = () => {
-//   let navigate=useNavigate();
-//   const [openDialog, setOpenDialog] = useState(false);
-//   const [selectedItem, setSelectedItem] = useState(null);
-//   const handlingDialog = () => {
-//     setOpenDialog(true);
-//   };
-
-//   const handlingRoute=(path,title)=>{
-//     setSelectedItem(title);
-//     navigate(path);
-//   }
-
-//   return (
-//     <Container>
-//       <ComposeButton variant="contained" onClick={handlingDialog}>
-//         <CreateOutlined /> Compose
-//       </ComposeButton>
-//       <List>
-//         {SIDEBAR_DATA.map((data) => (
-//           <ListItem key={data.title} onClick={()=>handlingRoute(data.path,data.title)}className={selectedItem === data.title ? "selected" : ""}>
-//               <data.icon /> {data.title}
-//           </ListItem>
-//         ))}
-//       </List>
-//       <ComposeMail openDialog={openDialog} setOpenDialog={setOpenDialog} />
-//     </Container>
-//   );
-// };
-
-// export default SideBarContent;
-
 import { Box, Button, styled, List, ListItem, useMediaQuery, Fab } from '@mui/material';
 import { CreateOutlined } from '@mui/icons-material';
 import { SIDEBAR_DATA } from '../Config/sidebar.config';
@@ -82,7 +18,7 @@ const ComposeButton = styled(Button)(({ theme }) => ({
   alignItems: 'center',
   gap: 8,
   [theme.breakpoints.down('sm')]: {
-    display: 'none'  // Hide button on small screens
+    display: 'none'  
   }
 }));
 
@@ -93,7 +29,7 @@ const FabButton = styled(Fab)(({ theme }) => ({
   background: '#C2E7FF',
   color: 'black',
   [theme.breakpoints.up('sm')]: {
-    display: 'none' // Hide FAB on larger screens
+    display: 'none' 
   }
 }));
 
@@ -102,7 +38,7 @@ const Container = styled(Box)(({ theme }) => ({
   width: '220px',
   [theme.breakpoints.down('sm')]: {
     width: '100%',
-    paddingBottom: 60  // To give room for FAB
+    paddingBottom: 60  
   },
   '& > ul': {
     padding: '10px 0 0 5px',
@@ -145,12 +81,10 @@ const SideBarContent = () => {
   return (
     <>
       <Container>
-        {/* Compose button (desktop only) */}
         <ComposeButton variant="contained" onClick={handleDialog}>
           <CreateOutlined fontSize="small" /> Compose
         </ComposeButton>
 
-        {/* Sidebar links */}
         <List>
           {SIDEBAR_DATA.map((data) => (
             <ListItem
@@ -164,7 +98,6 @@ const SideBarContent = () => {
         </List>
       </Container>
 
-      {/* Floating Compose button on mobile */}
       {isMobile && (
         <FabButton onClick={handleDialog}>
           <CreateOutlined />
