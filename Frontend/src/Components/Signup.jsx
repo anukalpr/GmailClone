@@ -15,7 +15,7 @@ const Signup = () => {
         e.preventDefault();
         try {
             await createUserWithEmailAndPassword(auth, email, password);
-            await fetch('http://localhost:4000/signup', {
+            await fetch('https://gmailclone-rjhk.onrender.com/signup', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
