@@ -74,7 +74,7 @@ const Email = ({ email, selectedEmails, setEmails, toggleSelectEmail }) => {
 
   const handleSnoozed = async () => {
     try {
-      await axios.put(`http://localhost:4000/emails/${email._id}/snooze`);
+      await axios.put(`https://gmailclone-rjhk.onrender.com/emails/${email._id}/snooze`);
       setIsSnoozed(!isSnoozed);
       setEmails(prev => prev.map(e =>
         e._id === email._id ? { ...e, snoozed: !e.snoozed } : e
@@ -95,7 +95,7 @@ const Email = ({ email, selectedEmails, setEmails, toggleSelectEmail }) => {
 
   const handleBin = async () => {
     try {
-      await axios.put(`http://localhost:4000/emails/${email._id}/bin`);
+      await axios.put(`https://gmailclone-rjhk.onrender.com/emails/${email._id}/bin`);
       setEmails(prev => prev.map(e => e._id === email._id ? { ...e, bin: true } : e));
     } catch (error) {
       console.error(error.message);
@@ -122,7 +122,6 @@ const Email = ({ email, selectedEmails, setEmails, toggleSelectEmail }) => {
 
   return (
     <WrapperEmail>
-      {/* Desktop Layout */}
       <RowDesktop>
         <Checkbox
           size="small"
@@ -176,7 +175,6 @@ const Email = ({ email, selectedEmails, setEmails, toggleSelectEmail }) => {
         </IconButton>
       </RowDesktop>
 
-      {/* Mobile Layout (NO SUBJECT) */}
       <RowMobileTop>
         <Typography
           onClick={handleViewEmail}
