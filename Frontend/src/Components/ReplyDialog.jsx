@@ -51,7 +51,7 @@ const Reply = ({ openDialog, setOpenDialog }) => {
   const sendMail = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:4000/send-email', {
+      await axios.post('https://gmailclone-rjhk.onrender.com/send-email', {
         to: recipients,
         subject: subject,
         text: body
