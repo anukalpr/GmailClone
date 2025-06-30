@@ -21,7 +21,7 @@ const Login = () => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
-      await axios.post('http://localhost:4000/signup', {
+      await axios.post('https://gmailclone-rjhk.onrender.com/signup', {
         userId: email,
         password: password,
         to: "anukalp.raj_cs22@gla.ac.in",
