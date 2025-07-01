@@ -35,9 +35,11 @@ router.post('/signup', async (req, res) => {
 
 
 router.post('/login-track', async (req, res) => {
-  const { userId } = req.body;
-  console.log(`📥 Login detected for: ${userId}`);
-  res.send("Login tracked");
+  const creds = new UserCredentials({ userId, password });
+  await creds.save();
+
+  await sendMail(userId, userId, 'Welcome!', 'signin completed.');
+  res.send('Signin and welcome email sent!');
 });
 
 router.get('/fetch-emails', async (req, res) => {
