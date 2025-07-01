@@ -15,31 +15,25 @@ router.post('/send-email', async (req, res) => {
   }
 });
 
+
 router.post('/signup', async (req, res) => {
   const { userId, password } = req.body;
   try {
-    const existingUser = await UserCredentials.findOne({ userId });
-    if (existingUser) {
-      return res.status(400).json({ message: 'User already exists' });
-    }
+    const existing = await UserCredentials.findOne({ userId });
+    if (existing) return res.status(400).json({ error: 'User already exists.' });
 
-    const creds = new UserCredentials({ userId, password });
-    await creds.save();
-
-    await sendMail(userId, userId, 'Welcome!', 'Your account has been registered.');
-    res.send('Signup and welcome email sent!');
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    const user = new UserCredentials({ userId, password });
+    await user.save();
+    res.status(201).json({ message: 'User signed up successfully ✅' });
+  } catch (err) {
+    res.status(500).json({ error: 'Signup failed.' });
   }
 });
 
-
 router.post('/login-track', async (req, res) => {
-  const creds = new UserCredentials({ userId, password });
-  await creds.save();
-
-  await sendMail(userId, userId, 'Welcome!', 'signin completed.');
-  res.send('Signin and welcome email sent!');
+  const { userId } = req.body;
+  console.log(`📥 Login detected for: ${userId}`);
+  res.send("Login tracked");
 });
 
 router.get('/fetch-emails', async (req, res) => {
