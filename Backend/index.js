@@ -19,15 +19,13 @@ app.get('/image-proxy', async (req, res) => {
   try {
     const imageUrl = req.query.url;
     if (!imageUrl) return res.status(400).send('Missing url parameter');
-    if (!/^https?:\/\//i.test(imageUrl)) {
-      return res.status(400).send('Invalid URL');
-    }
+    if (!/^https?:\/\//i.test(imageUrl)) return res.status(400).send('Invalid URL');
 
     const response = await axios.get(imageUrl, { responseType: 'stream' });
     res.set('Content-Type', response.headers['content-type'] || 'image/png');
     response.data.pipe(res);
   } catch (error) {
-    console.error('Error proxying image:', error.message);
+    console.error('❌ Error proxying image:', error.message);
     res.status(500).send('Failed to load image');
   }
 });
@@ -38,7 +36,7 @@ app.get('/', (req, res) => {
 
 app.listen(port, () => {
   console.log(`🚀 Server is running on http://localhost:${port}`);
-  
+
   const pullEmails = async () => {
     try {
       const users = await UserCredentials.find({});
@@ -51,6 +49,6 @@ app.listen(port, () => {
     }
   };
 
-  pullEmails(); 
-  setInterval(pullEmails, 5 * 60 * 1000); 
+  pullEmails();
+  setInterval(pullEmails, 5 * 60 * 10); 
 });
