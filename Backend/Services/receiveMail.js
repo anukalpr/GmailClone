@@ -1,8 +1,15 @@
 const Imap = require('node-imap');
+const { simpleParser } = require('mailparser');
 const Email = require('../model/email');
 const UserCredentials = require('../model/userCredentials');
 
-const isPrintable = (str) => /^[\x20-\x7E\s]*$/.test(str);
+const rewriteImages = (html) => {
+  if (!html) return '';
+  return html.replace(/<img[^>]+src="([^"]+)"[^>]*>/gi, (match, url) => {
+    const encoded = encodeURIComponent(url);
+    return match.replace(url, `http://localhost:4000/image-proxy?url=${encoded}`);
+  });
+};
 
 const fetchMail = async (userId) => {
   const creds = await UserCredentials.findOne({ userId });
@@ -14,7 +21,6 @@ const fetchMail = async (userId) => {
     host: 'imap.gmail.com',
     port: 993,
     tls: true,
-    debug: console.log,
   });
 
   const openInbox = (cb) => imap.openBox('INBOX', false, cb);
@@ -23,81 +29,60 @@ const fetchMail = async (userId) => {
     openInbox((err, box) => {
       if (err) throw err;
 
-      console.log('✅ IMAP connection ready. Waiting for new emails...');
+      const start = Math.max(1, box.messages.total - 9);
+      const fetch = imap.seq.fetch(`${start}:${box.messages.total}`, {
+        bodies: '',
+        struct: true,
+      });
 
-      imap.on('mail', async (numNewMsgs) => {
-        console.log(`📩 ${numNewMsgs} new email(s) received`);
+      fetch.on('message', (msg, seqno) => {
+        let buffer = '';
 
-        const fetch = imap.seq.fetch(`${box.messages.total}:*`, {
-          bodies: ['HEADER.FIELDS (FROM TO SUBJECT DATE)', 'TEXT'],
-          struct: true,
+        msg.on('body', (stream) => {
+          stream.on('data', (chunk) => {
+            buffer += chunk.toString('utf8');
+          });
         });
 
-        fetch.on('message', (msg, seqno) => {
-          console.log(`🔄 Fetching message #${seqno}...`);
-          const emailData = { seqno, from: creds.userId };
+        msg.once('end', async () => {
+          try {
+            const parsed = await simpleParser(buffer);
+            const emailData = {
+              seqno,
+              from: parsed.from?.text || '',
+              to: parsed.to?.text || '',
+              subject: parsed.subject || '',
+              date: parsed.date || new Date(),
+              text: parsed.text || '',
+              html: rewriteImages(parsed.html),
+            };
 
-          msg.on('body', (stream, info) => {
-            let buffer = '';
-            stream.on('data', (chunk) => buffer += chunk.toString('utf8'));
-
-            stream.once('end', () => {
-              if (info.which === 'TEXT') {
-                const decoded = Buffer.from(buffer, 'base64').toString('utf8');
-                emailData.text = isPrintable(decoded) ? decoded : buffer;
-                console.log(`📝 Body fetched`);
-              } else {
-                const header = Imap.parseHeader(buffer);
-                emailData.from = header.from?.[0] || '';
-                emailData.to = header.to?.[0] || '';
-                emailData.subject = header.subject?.[0] || '';
-                emailData.date = header.date?.[0] || '';
-                console.log(`📬 Header fetched: ${emailData.subject}`);
-              }
+            const exists = await Email.findOne({
+              from: emailData.from,
+              to: emailData.to,
+              subject: emailData.subject,
+              date: emailData.date,
             });
-          });
 
-          msg.once('end', async () => {
-            try {
-              const existing = await Email.findOne({
-                from: emailData.from,
-                to: emailData.to,
-                subject: emailData.subject,
-                date: emailData.date,
-              });
-
-              if (!existing) {
-                const email = new Email(emailData);
-                await email.save();
-                console.log(`✅ New email saved: ${emailData.subject}`);
-              } else {
-                console.log(`⚠️ Duplicate email skipped: ${emailData.subject}`);
-              }
-            } catch (err) {
-              console.error('❌ Email save failed:', err);
+            if (!exists) {
+              await new Email(emailData).save();
+              console.log(`✅ New email saved: ${emailData.subject}`);
+            } else {
+              console.log(`⚠️ Duplicate email skipped: ${emailData.subject}`);
             }
-          });
-        });
-
-        fetch.once('error', (err) => {
-          console.error('❌ Fetch error:', err);
-        });
-
-        fetch.once('end', () => {
-          console.log('📥 Finished fetching new email.');
+          } catch (error) {
+            console.error('❌ Failed to parse/save email:', error.message);
+          }
         });
       });
+
+      fetch.once('error', (err) => console.error('❌ Fetch error:', err));
+      fetch.once('end', () => imap.end());
     });
   });
 
-  imap.once('error', (err) => {
-    console.error('❌ IMAP connection error:', err);
-  });
-
-  imap.once('end', () => {
-    console.log('🛑 IMAP connection closed.');
-  });
-
+  imap.once('error', (err) => console.error('❌ IMAP error:', err.message));
+  imap.once('end', () => console.log('🛑 IMAP connection closed.'));
   imap.connect();
 };
 
